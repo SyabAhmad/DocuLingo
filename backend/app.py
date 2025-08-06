@@ -82,12 +82,13 @@ def translate_document():
             
             # Translate each text block
             for item in ocr_results:
-                original_text = item['text']
-                item['translated'] = translate_text(original_text, target_lang)
-                logging.info(f"Translated: '{original_text}' -> '{item['translated']}'")
-            
+                try:
+                    item['translated'] = translate_text(item['text'], target_lang)
+                except Exception as e:
+                    logging.error(f"Translation failed for '{item['text']}': {e}")
+                    item['translated'] = item['text']
             logging.info(f"Translation complete for page {idx+1}")
-            rendered_img = render_translated_text(img, ocr_results, font_size=28)
+            rendered_img = render_translated_text(img, ocr_results, font_size=44)
             rendered_images.append(rendered_img)
         except Exception as e:
             logging.exception(f"Error processing page {idx+1}")

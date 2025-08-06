@@ -1,10 +1,10 @@
 from PIL import ImageDraw, ImageFont, Image
 import os
 
-def render_translated_text(image, ocr_results, font_size=32):
+def render_translated_text(image, ocr_results, font_size=56):
     """
     Draws translated text onto the image at the positions of the original text.
-    Uses black text with fully opaque white background for better clarity.
+    Uses black text with fully opaque white background for best clarity.
     """
     # Create a copy to avoid modifying the original
     img_copy = image.copy()
@@ -28,24 +28,26 @@ def render_translated_text(image, ocr_results, font_size=32):
     overlay_draw = ImageDraw.Draw(overlay)
     
     for item in ocr_results:
-        if 'translated' in item and item['translated']:
-            x, y = item['left'], item['top']
-            width, height = item['width'], item['height']
-            translated_text = item['translated']
-            
-            print(f"Rendering: '{item['text']}' -> '{translated_text}' at ({x}, {y})")
-            
-            # Calculate text size
-            bbox = draw.textbbox((0, 0), translated_text, font=font)
-            text_width = bbox[2] - bbox[0]
-            text_height = bbox[3] - bbox[1]
-            
-            # Draw semi-transparent white background (70% opacity for better visibility)
-            padding = 4
-            overlay_draw.rectangle(
-                [x - padding, y - padding, x + text_width + padding, y + text_height + padding],
-                fill=(255, 255, 255, 255)  # Fully opaque white
-            )
+        # Always use original text if translation is empty or whitespace
+        translated_text = item.get('translated')
+        if not translated_text or not translated_text.strip():
+            translated_text = item['text']
+        x, y = item['left'], item['top']
+        width, height = item['width'], item['height']
+        
+        print(f"Rendering: '{item['text']}' -> '{translated_text}' at ({x}, {y})")
+        
+        # Calculate text size
+        bbox = draw.textbbox((0, 0), translated_text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        
+        # Draw fully opaque white background with extra padding
+        padding = 16
+        overlay_draw.rectangle(
+            [x - padding, y - padding, x + text_width + padding, y + text_height + padding],
+            fill=(255, 255, 255, 255)  # Fully opaque white
+        )
     
     # Composite the overlay onto the image
     img_copy = Image.alpha_composite(img_copy.convert('RGBA'), overlay)
@@ -54,29 +56,30 @@ def render_translated_text(image, ocr_results, font_size=32):
     # Now draw the text in black with larger, bolder appearance
     draw = ImageDraw.Draw(img_copy)
     for item in ocr_results:
-        if 'translated' in item and item['translated']:
-            x, y = item['left'], item['top']
-            translated_text = item['translated']
-            
-            # Draw black text multiple times for bold effect
-            for dx in range(-1, 2):
-                for dy in range(-1, 2):
-                    if dx == 0 and dy == 0:
-                        continue
-                    draw.text(
-                        (x + dx, y + dy),
-                        translated_text,
-                        fill=(50, 50, 50),  # Dark gray shadow
-                        font=font
-                    )
-            
-            # Draw main black text
-            draw.text(
-                (x, y),
-                translated_text,
-                fill=(0, 0, 0),  # Black text
-                font=font
-            )
+        translated_text = item.get('translated')
+        if not translated_text or not translated_text.strip():
+            translated_text = item['text']
+        x, y = item['left'], item['top']
+        
+        # Draw black text multiple times for bold effect
+        for dx in range(-1, 2):
+            for dy in range(-1, 2):
+                if dx == 0 and dy == 0:
+                    continue
+                draw.text(
+                    (x + dx, y + dy),
+                    translated_text,
+                    fill=(50, 50, 50),  # Dark gray shadow
+                    font=font
+                )
+        
+        # Draw main black text
+        draw.text(
+            (x, y),
+            translated_text,
+            fill=(0, 0, 0),  # Black text
+            font=font
+        )
     
     print(f"Finished rendering translated text")
     return img_copy
